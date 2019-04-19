@@ -51,12 +51,12 @@ defmodule Dependencies do
     IO.binwrite(file, prettify(mapping))
     File.close(file)
 
-    # Git.add!(@git_repository, @filename)
-    # Git.commit!(@git_repository, ["-m", "Update dependencies"])
-    # Git.push!(@git_repository)
+    Git.add!(@git_repository, @filename)
+    Git.commit!(@git_repository, ["-m", "Update dependencies"])
+    Git.push!(@git_repository)
   end
 
   def prettify(raw_json) do
-    "```" <> Jason.Formatter.pretty_print(raw_json) <> "```"
+    "```\n" <> Jason.Formatter.pretty_print(raw_json) <> "\n```"
   end
 end
