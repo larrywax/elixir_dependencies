@@ -10,29 +10,15 @@ defmodule Dependencies do
                    %{access_token: System.get_env("GITHUB_TOKEN")},
                    "https://api.github.com"
                  )
-  @bucket Application.get_env(:dependencies, :s3)[:bucket]
-  @filename Application.get_env(:dependencies, :s3)[:filename]
+  @filename "./README.md"
   @git_repository %Git.Repository{path: "./"}
-
-  # def run(app1, app2) do
-  #   app1_mapping =
-  #     Contents.find(@github_client, "primait", app1, "mix.lock")
-  #     |> deps_mapping(app1)
-  #
-  #   app2_mapping =
-  #     Contents.find(@github_client, "primait", app2, "mix.lock")
-  #     |> deps_mapping(app2)
-  #
-  #   Map.merge(app1_mapping, app2_mapping, fn _k, v1, v2 -> v1 ++ v2 end)
-  #   |> Jason.encode!()
-  # end
 
   def run(app_name) do
     mapping =
       Contents.find(@github_client, "primait", app_name, "mix.lock")
       |> deps_mapping(app_name)
 
-    download()
+    load()
     |> merge(mapping)
     |> save()
   end
@@ -45,14 +31,14 @@ defmodule Dependencies do
     |> Enum.reduce(%{}, &Map.merge/2)
   end
 
-  def download() do
-    S3.get_object(@bucket, @filename)
-    |> ExAws.request!()
-    |> decode()
-  end
+  def load() do
+    file = File.open!(@filename, [:read])
+    raw = IO.binread(file, :all)
+    File.close(file)
 
-  def decode(%{body: body}) do
-    Jason.decode!(body)
+    raw
+    |> String.replace("```", "")
+    |> Jason.decode!()
   end
 
   def merge(source, new_mapping) do
@@ -61,15 +47,16 @@ defmodule Dependencies do
   end
 
   def save(mapping) do
-    # S3.put_object(@bucket, @filename, mapping)
-    # |> ExAws.request!()
-
-    file = File.open!("./README.md", [:write])
-    IO.binwrite(file, Jason.Formatter.pretty_print(mapping))
+    file = File.open!(@filename, [:write])
+    IO.binwrite(file, prettify(mapping))
     File.close(file)
 
-    Git.add!(@git_repository, "./README.md")
-    Git.commit!(@git_repository, "Update dependencies")
-    Git.push!(@git_repository)
+    # Git.add!(@git_repository, @filename)
+    # Git.commit!(@git_repository, ["-m", "Update dependencies"])
+    # Git.push!(@git_repository)
+  end
+
+  def prettify(raw_json) do
+    "```" <> Jason.Formatter.pretty_print(raw_json) <> "```"
   end
 end
