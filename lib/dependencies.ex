@@ -7,7 +7,7 @@ defmodule Dependencies do
   alias ExAws.S3
 
   @github_client Client.new(
-                   %{access_token: ""},
+                   %{access_token: System.get_env("GITHUB_TOKEN")},
                    "https://api.github.com"
                  )
   @bucket Application.get_env(:dependencies, :s3)[:bucket]
